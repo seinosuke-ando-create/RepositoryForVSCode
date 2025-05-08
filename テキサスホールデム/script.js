@@ -15,6 +15,9 @@ const HAND_RANKS = {
 };
 
 let deck = [];
+let players = [];
+let communityCards = [];
+let revealedCount = 0;
 
 function createDeck() {
     deck = [];
@@ -37,51 +40,108 @@ function createCardImg(card) {
     return '<img src="images/' + fileName + '" alt="' + card.value + ' of ' + card.suit + '">';
 }
 
+function compareValues(vals1, vals2) {
+    for (let i = 0; i < Math.max(vals1.length, vals2.length); i++) {
+        const v1 = vals1[i] || 0;
+        const v2 = vals2[i] || 0;
+        if (v1 !== v2) return v1 - v2;
+    }
+    return 0;
+}
+
 function deal() {
     createDeck();
     shuffleDeck();
+    players = [];
+    communityCards = [];
+    revealedCount = 0;
 
-    const players = [];
+    // プレイヤーに2枚ずつ配布
     for (let i = 0; i < 6; i++) {
-        const hand = [deck.pop(), deck.pop()];
+        const card1 = deck.pop();
+        const card2 = deck.pop();
+        players.push({ hand: [card1, card2] });
+    
         const playerDiv = document.getElementById("player" + i);
-        playerDiv.innerHTML = '<div class="hand">' +
-            createCardImg(hand[0]) + createCardImg(hand[1]) +
-            '</div><div>Player ' + (i === 0 ? 'YOU' : i) + '</div>';
-        players.push({ hand });
+        playerDiv.innerHTML = `
+            <div class="hand">
+                ${createCardImg(card1)}
+                ${createCardImg(card2)}
+            </div>
+            <div>Player ${i === 0 ? 'YOU' : i}</div>
+            <div class="rank"></div>
+        `;
     }
 
-    const communityCards = [];
-    const communityDiv = document.getElementById("communityCards");
-    communityDiv.innerHTML = "";
+    // コミュニティカード（伏せた状態）
     for (let i = 0; i < 5; i++) {
-        const card = deck.pop();
-        communityCards.push(card);
-        communityDiv.innerHTML += createCardImg(card);
+        communityCards.push(deck.pop());
     }
 
+    const communityDiv = document.getElementById("communityCards");
+    communityDiv.innerHTML = `<div id="card0"></div><div id="card1"></div><div id="card2"></div><div id="card3"></div><div id="card4"></div>`;
+
+    document.getElementById("results").innerHTML = '';
+}
+
+// 3枚公開（フロップ）
+function revealFlop() {
+    if (revealedCount !== 0) return;
+    for (let i = 0; i < 3; i++) {
+        document.getElementById("card" + i).innerHTML = createCardImg(communityCards[i]);
+    }
+    revealedCount = 3;
+}
+
+// 1枚追加（ターン）
+function revealTurn() {
+    if (revealedCount !== 3) return;
+    document.getElementById("card3").innerHTML = createCardImg(communityCards[3]);
+    revealedCount = 4;
+}
+
+// さらに1枚追加（リバー）＋役判定
+function revealRiver() {
+    if (revealedCount !== 4) return;
+    document.getElementById("card4").innerHTML = createCardImg(communityCards[4]);
+    revealedCount = 5;
+
+    // 役判定表示
     displayHandsWithRanks(players, communityCards);
 }
 
 function displayHandsWithRanks(players, communityCards) {
-    players.forEach((player, index) => {
+    const allEvaluated = players.map((player, index) => {
         const combined = [...player.hand, ...communityCards];
         const bestHand = evaluateBestHand(combined);
-        const handText = bestHand.name + '（' + bestHand.values.join(', ') + '）';
+        return {
+            index,
+            rank: bestHand.rank,
+            name: bestHand.name,
+            values: bestHand.values
+        };
+    });
 
-        const playerDiv = document.getElementById("player" + index);
+    // 勝者の特定
+    allEvaluated.sort((a, b) => b.rank - a.rank || compareValues(b.values, a.values));
+    const best = allEvaluated[0];
+    const winners = allEvaluated.filter(p =>
+        p.rank === best.rank && compareValues(p.values, best.values) === 0
+    );
 
-        // 既存内容のまま上書きせず、下に役だけ追加表示
-        let rankDiv = playerDiv.querySelector(".rank");
-        if (!rankDiv) {
-            rankDiv = document.createElement('div');
-            rankDiv.className = 'rank';
-            rankDiv.style.marginTop = '5px';
-            rankDiv.style.fontSize = '14px';
-            rankDiv.style.color = 'white';
-            playerDiv.appendChild(rankDiv);
+    // 勝者をコミュニティカード下に表示
+    const resultText = winners.length === 1
+        ? `勝者: プレイヤー${winners[0].index}（${winners[0].name}）`
+        : `引き分け: ${winners.map(p => `プレイヤー${p.index}（${p.name}）`).join(', ')}`;
+    document.getElementById("results").innerText = resultText;
+
+    // 各プレイヤーの役を表示
+    allEvaluated.forEach(player => {
+        const playerDiv = document.getElementById("player" + player.index);
+        const rankDiv = playerDiv.querySelector(".rank");
+        if (rankDiv) {
+            rankDiv.innerText = player.name;
         }
-        rankDiv.innerText = handText;
     });
 }
 

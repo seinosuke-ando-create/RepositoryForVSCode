@@ -9,7 +9,7 @@
         .table { position: relative; width: 800px; height: 500px; margin: 20px auto; background-color: green; border-radius: 50%; }
         .player { position: absolute; text-align: center; }
         .community { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); display: flex; }
-        .community img { width: 60px; margin: 0 5px; }
+        .community img { width: 80px; margin: 0 5px; }
         .hand { display: flex; margin-top: 5px; justify-content: center; }
         .hand img { width: 40px; margin: 0 2px; }
         button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
@@ -30,7 +30,11 @@
     <div id="results" style="margin-top: 20px; font-size: 20px; text-align: center;"></div>
 </div>
 
+
 <button onclick="deal()">カードを配る</button>
+<button onclick="revealFlop()">フロップ</button>
+<button onclick="revealTurn()">ターン</button>
+<button onclick="revealRiver()">リバー</button>
 
 <script src="script.js"></script>
 </body>
