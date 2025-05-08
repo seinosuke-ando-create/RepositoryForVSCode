@@ -13,11 +13,17 @@ const HAND_RANKS = {
     "ワンペア": 1,
     "ハイカード": 0
 };
+const positions = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
 
 let deck = [];
 let players = [];
 let communityCards = [];
 let revealedCount = 0;
+let dealerIndex = 0; // 最初のBTNはplayer0
+
+function getRotatedPositions(startIndex) {
+    return positions.slice(startIndex).concat(positions.slice(0, startIndex));
+}
 
 function createDeck() {
     deck = [];
@@ -55,22 +61,27 @@ function deal() {
     players = [];
     communityCards = [];
     revealedCount = 0;
+    dealerIndex = (dealerIndex + 1) % 6;
+    const rotatedPositions = getRotatedPositions(dealerIndex);
 
     // プレイヤーに2枚ずつ配布
     for (let i = 0; i < 6; i++) {
         const card1 = deck.pop();
         const card2 = deck.pop();
-        players.push({ hand: [card1, card2] });
+        players.push({
+            name: `Player ${i === 0 ? 'YOU' : i}`,
+            hand: [card1, card2],
+            chips: 100 // ← ここで初期チップを100に設定
+        });
     
         const playerDiv = document.getElementById("player" + i);
         playerDiv.innerHTML = `
-            <div class="hand">
-                ${createCardImg(card1)}
-                ${createCardImg(card2)}
-            </div>
-            <div>Player ${i === 0 ? 'YOU' : i}</div>
-            <div class="rank"></div>
-        `;
+         <div class="hand">
+           ${createCardImg(card1)}
+           ${createCardImg(card2)}
+         </div>
+         <div>${rotatedPositions[i]} Player${i === 0 ? 'YOU' : i}</div> <div class="chips">チップ: ${players[i].chips} BB</div> <div class="rank"></div>
+       `;
     }
 
     // コミュニティカード（伏せた状態）
